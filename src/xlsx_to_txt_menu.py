@@ -1,15 +1,33 @@
 import openpyxl
+import json
 from menu import *
+
+DefaultState = {
+    "page": 1,
+    "order": 1,
+    "size": "M",
+    "units": "gram"
+}
+
+CurrentState = copy(DefaultState)
 
 def parse_xlsx(workbook):
     current_file = None
+    pages = []
     try:
         for sheet in workbook:
             for row in sheet:
                 row = [cell.value for cell in row[:5]]
                 print(row)
                 line = None
-                if normalize(row[3]) == '' and normalize(row[4]) == '':
+                if normalize(row[1]) == '' and normalize(row[2]) == '' and normalize(row[3]) == '' and normalize(row[4]) == '':
+                    state = json.loads(normalize(row[0]))
+                    for key, value in state.iteritems():
+                        if key  in dict.keys():
+                            print("Warning: unknown state key {0}!".format(key))
+                            continue
+                        CurrentState[key] = value
+                else if normalize(row[3]) == '' and normalize(row[4]) == '':
                     if current_file is not None:
                         current_file.close()
                     if normalize(row[1]) != '':
