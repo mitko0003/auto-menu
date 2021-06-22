@@ -1,4 +1,4 @@
-﻿// just in case
+// just in case
 preferences.rulerUnits = Units.PIXELS;  
 
 var Mode = {
@@ -69,14 +69,14 @@ function Row(nameBG, nameEN, nameGR, weigth, price) {
     this.nameBG = nameBG 
     this.nameEN = nameEN
     this.nameGR = nameGR
-    this.weigth = weigth + " гр/gr"
+    this.nameWeigth = weigth + " гр/gr"
     if (weigth[weigth.length - 1] == '.') {
-        this.weigth = weigth
+        this.nameWeigth = weigth
         }
     else if (weigth == "") {
-        this.weigth = ""
+        this.nameWeigth = ""
         }
-    this.price = price + " лв/lv"
+    this.price = parseFloat(price).toFixed(2) + " лв/lv"
     
     // Use of layes have strange positioning`
     this.shiftX = 0
@@ -89,6 +89,7 @@ function Row(nameBG, nameEN, nameGR, weigth, price) {
     this.textBG = null
     this.textEN = null
     this.textGR = null
+    this.weight = null
     var _this = this
     
     this.build = function() {
@@ -106,10 +107,11 @@ function Row(nameBG, nameEN, nameGR, weigth, price) {
             else if (_this.nameGR)
                 _this.row.name = _this.nameGR
             removeCopyFromName(_this.row.layers)
-            _this.form = _this.row.layers.getByName("Row Form")
+            _this.form = _this.row.layers.getByName("Form")
             _this.textBG =  _this.row.layers.getByName("Name BG")
             _this.textEN =  _this.row.layers.getByName("Name EN")
             _this.textGR =  _this.row.layers.getByName("Name GR")
+           _this.weigth =   _this.row.layers.getByName("Weigth")
             
             _this.textBG.textItem.contents = _this.nameBG
             _this.textBG.textItem.fauxBold = _this.bold
@@ -117,8 +119,15 @@ function Row(nameBG, nameEN, nameGR, weigth, price) {
             _this.textEN.textItem.fauxBold = _this.bold
             _this.textGR.textItem.contents = _this.nameGR
             _this.textGR.textItem.fauxBold = _this.bold
-            _this.row.layers.getByName("Weigth").textItem.contents = _this.weigth
+            _this.weigth.textItem.contents = _this.nameWeigth
             _this.setPrice()
+
+            if (this.smallRows) {
+                var offset = _this.weigth[0] - _this.textGR.bounds[0]
+                if (offset < 0) {
+                    _this.textGR.translate(offset, 0);
+                    }
+                }
             }
         }
     this.afterPos = function() {
@@ -128,16 +137,6 @@ function Row(nameBG, nameEN, nameGR, weigth, price) {
     this.setPrice = function() {
         var price = _this.row.layers.getByName("Price")
         price.textItem.contents = _this.price
-        
-        // Position in the middle of tag (Horizontally)
-        if (!_this.smallRows) {
-            var tagForm = _this.row.layers.getByName("Tag form")
-            var tagMiddleX = (tagForm.bounds[2].value + tagForm.bounds[0].value) / 2;
-            var priceMiddleX = (price.bounds[2].value + price.bounds[0].value) / 2;
-            price.unlink()
-            price.translate(-(priceMiddleX - tagMiddleX), 0)
-            price.link(_this.row)
-            }
         }
     }
 
@@ -164,7 +163,7 @@ function Title(nameBG, nameEN, nameGR) {
             _this.title.visible = false
             _this.title.name = _this.nameEN
             removeCopyFromName(_this.title.layers)
-            _this.form = _this.title.layers.getByName("Title form");
+            _this.form = _this.title.layers.getByName("Form");
             _this.setTitle("Title BG", _this.nameBG)
             _this.setTitle("Title EN", _this.nameEN)            
             _this.setTitle("Title GR", _this.nameGR)
@@ -223,6 +222,14 @@ function Page(sections) {
 
 var psdFileRef = null
 
+function getWidth(elem) {
+    return elem.bounds[2] - elem.bounds[0]
+    }
+
+function getHeight(elem) {
+    return elem.bounds[3] - elem.bounds[1]
+    }
+
 function positionElem(elem) {
     if (elem instanceof Row) {
         moveSetTo (elem.row, elem.form, elem.form.bounds[0].value, nextElemPosition)
@@ -230,13 +237,9 @@ function positionElem(elem) {
     else if (elem instanceof Title) {
         moveSetTo (elem.title, elem.form, elem.form.bounds[0].value, nextElemPosition)
         }
-    
-    if (elem instanceof Row && elem.smallRows) {
-        nextElemPosition += 77
-        return
-        }
-    nextElemPosition += 157 // used exact mesure in this menu review
-    // sometimes you need to move accourding to element type! + offsets and overlaps
+
+    nextElemPosition += getHeight(elem.form) // used exact mesure in this menu review
+    // sometimes you need to move according to element type! + offsets and overlaps
     }
 
 function moveSetTo(set, layer, x, y) {
@@ -364,10 +367,12 @@ function parse(menuFile) {
     }
 
 function buildPages() {
+    var topPagePadding = 40
+
     if (mode == Mode.DEBUG) {
         var page = parse(autoPage)
         
-        nextElemPosition = 19 // Top page padding
+        nextElemPosition = topPagePadding
         psdFileRef = open(autoBase)
         
         app.activeDocument = psdFileRef
@@ -381,7 +386,7 @@ function buildPages() {
         for (var i = 0; i < menuFiles.length; i++) {
             var page = parse(menuFiles[i])
             
-            nextElemPosition = 19
+            nextElemPosition = topPagePadding
             psdFileRef = open(psdFile)
             
             app.activeDocument = psdFileRef
